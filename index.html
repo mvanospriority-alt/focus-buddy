@@ -1,0 +1,1317 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Focus Buddy ❤️</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    :root {
+      --primary: #6366f1;
+      --primary-dark: #4338ca;
+      --background: #f5f6fb;
+      --card: #ffffff;
+      --text: #20243a;
+      --muted: #85899b;
+      --green: #16a34a;
+      --red: #dc2626;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--background);
+      color: var(--text);
+    }
+
+    .container {
+      max-width: 650px;
+      margin: auto;
+      padding: 22px 16px 60px;
+    }
+
+    .header {
+      text-align: center;
+      margin: 20px 0 30px;
+    }
+
+    .logo {
+      font-size: 48px;
+    }
+
+    h1 {
+      margin: 8px 0;
+      font-size: 30px;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: 20px;
+      padding: 22px;
+      margin-bottom: 18px;
+      box-shadow: 0 5px 22px rgba(25, 30, 70, 0.05);
+    }
+
+    input, button, select {
+      font: inherit;
+    }
+
+    input {
+      width: 100%;
+      padding: 14px;
+      margin-top: 10px;
+      border: 1px solid #e2e5ef;
+      border-radius: 12px;
+    }
+
+    button {
+      border: none;
+      border-radius: 12px;
+      padding: 12px 16px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .primary {
+      background: var(--primary);
+      color: white;
+      width: 100%;
+      margin-top: 16px;
+    }
+
+    .primary:hover {
+      background: var(--primary-dark);
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .status {
+      padding: 14px;
+      border-radius: 12px;
+      background: #eef2ff;
+      margin-bottom: 20px;
+    }
+
+    .search {
+      margin-bottom: 18px;
+    }
+
+    .app {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 15px 0;
+      border-bottom: 1px solid #f0f0f5;
+    }
+
+    .app:last-child {
+      border-bottom: none;
+    }
+
+    .app-info {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .app-name {
+      font-weight: 600;
+      overflow-wrap: anywhere;
+    }
+
+    .app-status {
+      font-size: 12px;
+      margin-top: 5px;
+      color: var(--muted);
+    }
+
+    .blocked {
+      color: var(--red);
+    }
+
+    .allowed {
+      color: var(--green);
+    }
+
+    .block-btn {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .allow-btn { background: #dcfce7; color: #166534; }
+    .app-actions { display: flex; flex-wrap: wrap; gap: 7px; justify-content: flex-end; }
+    .app-actions button { padding: 9px 10px; font-size: 13px; }
+
+    .unlock-btn {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .category {
+      margin-top: 24px;
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .logout {
+      background: transparent;
+      color: var(--muted);
+      margin-top: 16px;
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(20, 20, 40, 0.55);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      z-index: 100;
+    }
+
+    .modal-content {
+      background: white;
+      border-radius: 22px;
+      padding: 24px;
+      width: 100%;
+      max-width: 420px;
+    }
+
+    .time-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .time-btn {
+      background: #eef2ff;
+      color: var(--primary-dark);
+    }
+
+    .message {
+      color: var(--red);
+      font-size: 13px;
+      margin-top: 12px;
+    }
+    /* CHAT EN VERZOEKEN */
+    .chat-box { max-height: 190px; overflow-y: auto; background: #f7f7fd; border-radius: 12px; padding: 10px; margin: 12px 0; }
+    .chat-line { margin: 8px 0; padding: 9px 11px; border-radius: 12px; max-width: 88%; background: #fff; overflow-wrap: anywhere; }
+    .chat-line.mine { background: #e0e7ff; margin-left: auto; }
+    .chat-meta { font-size: 11px; color: #667085; margin-bottom: 4px; }
+    .chat-input-row { display: flex; gap: 8px; align-items: center; }
+    .chat-input-row input { flex: 1; min-width: 0; margin: 0; }
+    .chat-input-row button { background: var(--primary); color: white; }
+    .request-row { border-bottom: 1px solid #eee; padding: 14px 0; }
+    .request-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    .request-actions button:first-child { background: #dcfce7; color: #166534; }
+    .request-actions button:last-child { background: #fee2e2; color: #991b1b; }
+    .small-note { color: var(--muted); font-size: 13px; }
+    .control-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+    .control-row button { flex: 1 1 190px; }
+    .control-row button:disabled { opacity: .5; cursor: default; }
+    .schedule-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+    .schedule-grid label { display:block; font-size:13px; font-weight:600; }
+    .schedule-grid input,.schedule-grid select { width:100%; padding:11px; margin-top:6px; border:1px solid #e2e5ef; border-radius:10px; }
+    .schedule-grid .wide { grid-column:1/-1; }
+    .day-choices { display:flex; flex-wrap:wrap; gap:8px; margin:12px 0; }
+    .day-choices label { display:flex; align-items:center; gap:4px; padding:7px 9px; border-radius:9px; background:#eef2ff; font-size:13px; }
+    .day-choices input,.exception-row input { width:auto; margin:0; }
+    .schedule-entry { border-top:1px solid #eee; padding:13px 0; }
+    .schedule-entry .control-row { margin-top:7px; }
+    .exception-list { max-height:220px; overflow-y:auto; border:1px solid #eee; border-radius:12px; padding:8px 12px; }
+    .exception-row { display:flex; align-items:center; gap:9px; padding:8px 0; border-bottom:1px solid #f1f1f5; }
+    @media(max-width:440px) { .schedule-grid { grid-template-columns:1fr; } }
+
+  </style>
+</head>
+
+<body>
+<div class="container">
+
+  <div class="header">
+    <div class="logo">🔒❤️</div>
+    <h1>Focus Buddy</h1>
+    <div class="subtitle">Samen werken aan meer focus</div>
+  </div>
+
+  <!-- INLOGSCHERM -->
+
+  <div id="loginScreen" class="card">
+    <h2>Welkom Suze 👋</h2>
+    <p class="subtitle">Log in om Mike's apps te beheren.</p>
+
+    <form id="loginForm">
+      <input
+        id="email"
+        type="email"
+        placeholder="E-mailadres"
+        autocomplete="username"
+        required
+      >
+
+      <input
+        id="password"
+        type="password"
+        placeholder="Wachtwoord"
+        autocomplete="current-password"
+        required
+      >
+
+      <button class="primary" type="submit">Inloggen</button>
+    </form>
+
+    <div id="loginError" class="message"></div>
+  </div>
+
+  <!-- DASHBOARD -->
+
+  <div id="dashboard" class="hidden">
+
+    <div class="card">
+      <h2>💬 Chat met Mike ❤️</h2>
+      <div id="chatBox" class="chat-box" aria-live="polite">Berichten laden...</div>
+      <button id="chatExpand" type="button" class="logout hidden">Bekijk hele chat</button>
+      <form id="chatForm" class="chat-input-row">
+        <input id="chatInput" type="text" maxlength="2000" placeholder="Typ een bericht..." autocomplete="off" required>
+        <button id="chatSend" type="submit">➤</button>
+      </form>
+      <div id="chatError" class="message" role="status"></div>
+    </div>
+
+    <div class="card">
+      <h2>📩 Toestemmingsverzoeken</h2>
+      <div id="requestList" class="small-note">Verzoeken laden...</div>
+      <div id="requestError" class="message" role="status"></div>
+    </div>
+
+    <div class="card">
+      <h2>📱 Mike's telefoon</h2>
+      <div id="connectionStatus" class="status">
+        Gegevens ophalen...
+      </div>
+      <strong id="blockedCount">0 apps geblokkeerd</strong>
+    </div>
+
+    <div class="card">
+      <h2>📞 Inkomende oproepen</h2>
+      <p id="callStatus" class="small-note" role="status">Oproepinstelling ophalen...</p>
+      <div class="control-row">
+        <button id="rejectCallsButton" class="block-btn" type="button">🔴 Alle oproepen weigeren</button>
+        <button id="allowCallsButton" class="allow-btn" type="button">🟢 Oproepen toestaan</button>
+      </div>
+      <div id="callError" class="message" role="alert"></div>
+      <p class="small-note">Oproepfiltering is afhankelijk van Android en de provider; sommige oproepen, bijvoorbeeld van contacten, kunnen alsnog doorkomen.</p>
+    </div>
+
+    <div class="card">
+      <h2>📱 Alle apps beheren</h2>
+      <div class="control-row">
+        <button id="blockAllAppsButton" class="block-btn" type="button">🔴 Alle apps blokkeren</button>
+        <button id="allowAllAppsButton" class="allow-btn" type="button">🟢 Alle apps vrijgeven</button>
+      </div>
+      <div id="bulkAppsError" class="message" role="alert"></div>
+    </div>
+
+    <div class="card">
+      <h2>🕒 Automatische tijdschema's</h2>
+      <p class="small-note">Maak algemene schema's of schema's voor één app. Tijdzone: Nederland (Europe/Amsterdam). De uitvoering op de telefoon bouwen we hierna.</p>
+      <form id="scheduleForm">
+        <div class="schedule-grid">
+          <label class="wide">Naam van schema<input id="scheduleName" maxlength="80" placeholder="Bijv. Avondrust" required></label>
+          <label>Toepassen op<select id="scheduleType"><option value="all">Alle apps</option><option value="app">Eén app</option></select></label>
+          <label id="scheduleAppWrap" class="hidden">Welke app?<select id="scheduleApp"></select></label>
+          <label>Vanaf<input id="scheduleStart" type="time" value="21:00" required></label>
+          <label>Tot<input id="scheduleEnd" type="time" value="08:00" required></label>
+        </div>
+        <p class="small-note">Op welke dagen begint het schema?</p>
+        <div class="day-choices" id="scheduleDays">
+          <label><input type="checkbox" value="1" checked>Ma</label>
+          <label><input type="checkbox" value="2" checked>Di</label>
+          <label><input type="checkbox" value="3" checked>Wo</label>
+          <label><input type="checkbox" value="4" checked>Do</label>
+          <label><input type="checkbox" value="5" checked>Vr</label>
+          <label><input type="checkbox" value="6" checked>Za</label>
+          <label><input type="checkbox" value="7" checked>Zo</label>
+        </div>
+        <input type="hidden" id="scheduleEditId">
+        <div class="control-row">
+          <button type="submit" id="scheduleSave" class="allow-btn">💾 Schema opslaan</button>
+          <button type="button" id="scheduleCancel" class="logout hidden">Annuleren</button>
+        </div>
+      </form>
+      <div id="scheduleError" class="message" role="alert"></div>
+      <h3>Ingestelde schema's</h3>
+      <div id="scheduleList" class="small-note">Schema's laden...</div>
+    </div>
+    <div class="card">
+      <h2>✅ Uitzonderingen op algemene schema's</h2>
+      <p class="small-note">Aangevinkte apps vallen buiten algemene schema's. Een eigen appschema of handmatige blokkade kan ze nog wel blokkeren.</p>
+      <div id="exceptionList" class="exception-list">Apps laden...</div>
+      <div id="exceptionError" class="message" role="alert"></div>
+    </div>
+
+    <input
+      id="search"
+      class="search"
+      type="search"
+      placeholder="🔍 Zoek een app..."
+    >
+
+    <div id="appList" class="card">
+      Apps laden...
+    </div>
+
+    <button id="logoutButton" class="logout">
+      Uitloggen
+    </button>
+
+  </div>
+</div>
+
+<!-- TIJDELIJK VRIJGEVEN -->
+
+<div id="unlockModal" class="modal hidden">
+  <div class="modal-content">
+    <h2>🔓 Tijdelijk vrijgeven</h2>
+
+    <p id="unlockAppName"></p>
+
+    <div class="time-grid">
+      <button class="time-btn" data-minutes="5">5 min</button>
+      <button class="time-btn" data-minutes="15">15 min</button>
+      <button class="time-btn" data-minutes="30">30 min</button>
+      <button class="time-btn" data-minutes="60">1 uur</button>
+      <button class="time-btn" data-minutes="120">2 uur</button>
+      <button class="time-btn" data-minutes="180">3 uur</button>
+    </div>
+
+    <button id="cancelUnlock" class="logout">
+      Annuleren
+    </button>
+  </div>
+</div>
+
+<script>
+  // SUPABASE INSTELLINGEN
+
+  const SUPABASE_URL =
+    "https://bwjeblsleuwctetqqhqf.supabase.co";
+
+  const SUPABASE_KEY =
+    "sb_publishable_v45HbZ-_hxXVASuIOeKeXg_OKWYvJ5c";
+
+  // Mike's gebruikers-ID
+  const OWNER_ID =
+    "c3c79ba2-727f-49e5-bc3e-a802b444b812";
+
+  // Suzes gebruikers-ID
+  const SUZE_ID =
+    "096e34ae-70e7-4c63-b2ce-73ea6d3ec075";
+
+  const db = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_KEY
+  );
+
+  let apps = [];
+  let selectedApp = null;
+  let refreshTimer = null;
+  let busy = false;
+  let chatBusy = false;
+  let requestBusy = false;
+  let chatExpanded = false;
+  let chatMessages = [];
+  let chatLoading = false;
+  let requestLoading = false;
+  let callBusy = false;
+  let callLoading = false;
+  let callSetting = null;
+  let schedules = [];
+  let scheduleExceptions = new Set();
+  let scheduleBusy = false;
+  let scheduleLoading = false;
+  let exceptionBusy = false;
+
+  const loginScreen = document.getElementById("loginScreen");
+  const dashboard = document.getElementById("dashboard");
+  const appList = document.getElementById("appList");
+
+  // INLOGGEN
+
+  document.getElementById("loginForm").addEventListener(
+    "submit",
+    async (event) => {
+      event.preventDefault();
+
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+
+      const errorBox = document.getElementById("loginError");
+      errorBox.textContent = "";
+
+      const { error } = await db.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      if (error) {
+        errorBox.textContent = error.message;
+        return;
+      }
+
+      await showDashboard();
+    }
+  );
+
+  // CONTROLEREN OF SUZE IS INGELOGD
+
+  async function showDashboard() {
+    const { data: { user } } = await db.auth.getUser();
+
+    if (!user) {
+      showLogin();
+      return;
+    }
+
+    if (user.id !== SUZE_ID) {
+      await db.auth.signOut();
+      showLogin();
+      document.getElementById("loginError").textContent =
+        "Dit dashboard is alleen voor Suze.";
+      return;
+    }
+
+    loginScreen.classList.add("hidden");
+    dashboard.classList.remove("hidden");
+
+    await Promise.all([loadApps(), loadRequests(), loadChat(), loadCallSettings(), loadSchedules(), loadExceptions()]);
+
+    if (refreshTimer) clearInterval(refreshTimer);
+
+    refreshTimer = setInterval(() => {
+      loadApps();
+      loadRequests();
+      loadChat();
+      loadCallSettings();
+      loadSchedules();
+      loadExceptions();
+    }, 5000);
+  }
+
+  function showLogin() {
+    dashboard.classList.add("hidden");
+    loginScreen.classList.remove("hidden");
+    chatMessages = [];
+    document.getElementById("chatBox").textContent = "Berichten laden...";
+
+    if (refreshTimer) {
+      clearInterval(refreshTimer);
+      refreshTimer = null;
+    }
+  }
+
+  // CHAT: laatste drie berichten, of volledige geschiedenis
+  async function loadChat() {
+    if (chatLoading) return;
+    chatLoading = true;
+    try {
+      const { data, error } = await db.from("chat_messages")
+        .select("id, sender_id, message, created_at")
+        .eq("owner_id", OWNER_ID)
+        .order("created_at", { ascending: false })
+        .limit(100);
+      if (error) throw error;
+      chatMessages = (data || []).reverse();
+      document.getElementById("chatError").textContent = "";
+      renderChat();
+    } catch (error) {
+      document.getElementById("chatError").textContent =
+        "Chat ophalen mislukt: " + error.message;
+    } finally { chatLoading = false; }
+  }
+
+  function renderChat() {
+    const box = document.getElementById("chatBox");
+    box.replaceChildren();
+    const visible = chatExpanded ? chatMessages : chatMessages.slice(-3);
+    if (!visible.length) {
+      box.textContent = "Nog geen berichten. Stuur Mike iets! 💬";
+    }
+    for (const msg of visible) {
+      const line = document.createElement("div");
+      const mine = msg.sender_id === SUZE_ID;
+      line.className = "chat-line" + (mine ? " mine" : "");
+      const meta = document.createElement("div");
+      meta.className = "chat-meta";
+      const date = new Date(msg.created_at);
+      meta.textContent = (mine ? "Suze" : "Mike") + " · " +
+        date.toLocaleTimeString("nl-NL", { hour: "2-digit", minute: "2-digit" });
+      const body = document.createElement("div");
+      body.textContent = msg.message;
+      line.append(meta, body);
+      box.appendChild(line);
+    }
+    box.scrollTop = box.scrollHeight;
+    const expand = document.getElementById("chatExpand");
+    expand.classList.toggle("hidden", chatMessages.length <= 3);
+    expand.textContent = chatExpanded ? "Minder tonen" : "Bekijk hele chat";
+  }
+
+  document.getElementById("chatExpand").addEventListener("click", () => {
+    chatExpanded = !chatExpanded;
+    renderChat();
+  });
+
+  document.getElementById("chatForm").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (chatBusy) return;
+    const input = document.getElementById("chatInput");
+    const message = input.value.trim();
+    if (!message || message.length > 2000) return;
+    chatBusy = true;
+    document.getElementById("chatSend").disabled = true;
+    try {
+      const { error } = await db.from("chat_messages").insert({
+        owner_id: OWNER_ID,
+        sender_id: SUZE_ID,
+        message
+      });
+      if (error) throw error;
+      input.value = "";
+      await loadChat();
+      document.getElementById("chatError").textContent = "";
+    } catch (error) {
+      document.getElementById("chatError").textContent =
+        "Versturen mislukt: " + error.message;
+    } finally {
+      chatBusy = false;
+      document.getElementById("chatSend").disabled = false;
+    }
+  });
+
+  // VERZOEKEN: alleen openstaande verzoeken tonen
+  async function loadRequests() {
+    if (requestLoading || requestBusy) return;
+    requestLoading = true;
+    try {
+      const { data, error } = await db.from("unlock_requests")
+        .select("id, package_name, app_name, requested_minutes, created_at")
+        .eq("owner_id", OWNER_ID)
+        .eq("status", "pending")
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      const list = document.getElementById("requestList");
+      list.replaceChildren();
+      if (!data || !data.length) {
+        list.textContent = "Geen openstaande verzoeken.";
+      } else {
+        for (const req of data) {
+          const row = document.createElement("div");
+          row.className = "request-row";
+          const title = document.createElement("strong");
+          title.textContent = req.app_name || req.package_name;
+          const info = document.createElement("div");
+          info.className = "small-note";
+          info.textContent = `${req.requested_minutes} minuten · ` +
+            new Date(req.created_at).toLocaleString("nl-NL");
+          const actions = document.createElement("div");
+          actions.className = "request-actions";
+          const yes = document.createElement("button");
+          yes.textContent = "✅ Goedkeuren";
+          yes.onclick = () => answerRequest(req, true);
+          const no = document.createElement("button");
+          no.textContent = "❌ Weigeren";
+          no.onclick = () => answerRequest(req, false);
+          actions.append(yes, no);
+          row.append(title, info, actions);
+          list.appendChild(row);
+        }
+      }
+      document.getElementById("requestError").textContent = "";
+    } catch (error) {
+      document.getElementById("requestError").textContent =
+        "Verzoeken ophalen mislukt: " + error.message;
+    } finally { requestLoading = false; }
+  }
+
+  async function answerRequest(req, approve) {
+    if (requestBusy || busy) return;
+    requestBusy = true;
+    document.getElementById("requestError").textContent = "";
+    try {
+      if (approve) {
+        const until = new Date(Date.now() +
+          Number(req.requested_minutes) * 60000).toISOString();
+        const { data, error } = await db.from("app_rules")
+          .update({
+            is_blocked: true,
+            unlocked_until: until,
+            updated_at: new Date().toISOString()
+          })
+          .eq("owner_id", OWNER_ID)
+          .eq("package_name", req.package_name)
+          .select("id");
+        if (error) throw error;
+        if (!data || data.length !== 1) {
+          throw new Error("App-regel niet gevonden of geen toegang.");
+        }
+        await notifyPhone();
+      }
+      const { data, error } = await db.from("unlock_requests")
+        .update({
+          status: approve ? "approved" : "denied",
+          responded_at: new Date().toISOString()
+        })
+        .eq("id", req.id)
+        .eq("owner_id", OWNER_ID)
+        .eq("status", "pending")
+        .select("id");
+      if (error) throw error;
+      if (!data || data.length !== 1) {
+        throw new Error("Verzoek is al behandeld of niet toegankelijk.");
+      }
+    } catch (error) {
+      document.getElementById("requestError").textContent =
+        "Verzoek verwerken mislukt: " + error.message;
+    } finally {
+      requestBusy = false;
+      await Promise.all([loadRequests(), loadApps()]);
+    }
+  }
+
+  // Vraag de server om Mike's telefoon direct te synchroniseren.
+  // De Edge Function controleert zelf of Suze hiervoor bevoegd is.
+  async function notifyPhone() {
+    const { data, error } = await db.functions.invoke("send-focus-push", {
+      body: { action: "sync_rules" }
+    });
+    if (error) throw new Error("Pushbericht mislukt: " + error.message);
+    if (!data?.success) throw new Error("Telefoon niet bereikt: " + (data?.error || "onbekende fout"));
+  }
+
+  // OPROEPEN: onafhankelijk van de appblokkades.
+  async function loadCallSettings() {
+    if (callLoading || callBusy) return;
+    callLoading = true;
+    try {
+      const { data, error } = await db.from("call_settings")
+        .select("reject_calls")
+        .eq("owner_id", OWNER_ID)
+        .maybeSingle();
+      if (error) throw error;
+      callSetting = data?.reject_calls === true;
+      document.getElementById("callStatus").textContent = data
+        ? (callSetting ? "🔴 Oproepen weigeren ingeschakeld" : "🟢 Oproepen toegestaan")
+        : "🟢 Oproepen toegestaan (standaardinstelling)";
+      document.getElementById("rejectCallsButton").disabled = callSetting;
+      document.getElementById("allowCallsButton").disabled = !callSetting;
+      document.getElementById("callError").textContent = "";
+    } catch (error) {
+      document.getElementById("callStatus").textContent = "⚠️ Oproepstatus onbekend";
+      document.getElementById("callError").textContent = "Oproepinstelling ophalen mislukt: " + error.message;
+    } finally { callLoading = false; }
+  }
+
+  async function setCallBlocking(enabled) {
+    if (callBusy) return;
+    callBusy = true;
+    const rejectButton = document.getElementById("rejectCallsButton");
+    const allowButton = document.getElementById("allowCallsButton");
+    rejectButton.disabled = true;
+    allowButton.disabled = true;
+    document.getElementById("callError").textContent = "";
+    document.getElementById("callStatus").textContent = "⏳ Instelling versturen...";
+    try {
+      const { data, error } = await db.from("call_settings").upsert({
+        owner_id: OWNER_ID,
+        reject_calls: enabled,
+        updated_at: new Date().toISOString()
+      }, { onConflict: "owner_id" }).select("reject_calls");
+      if (error) throw error;
+      if (!data || data.length !== 1) throw new Error("Geen toegang tot oproepinstelling.");
+      await notifyPhone();
+      document.getElementById("callStatus").textContent = enabled
+        ? "🔴 Weigeren aangevraagd bij telefoon"
+        : "🟢 Toestaan aangevraagd bij telefoon";
+    } catch (error) {
+      document.getElementById("callError").textContent =
+        "Instelling mogelijk opgeslagen, maar bevestiging mislukt: " + error.message;
+    } finally {
+      callBusy = false;
+      await loadCallSettings();
+    }
+  }
+
+  document.getElementById("rejectCallsButton").addEventListener("click", () => setCallBlocking(true));
+  document.getElementById("allowCallsButton").addEventListener("click", () => setCallBlocking(false));
+
+  // Alles tegelijk beheren; de individuele knoppen blijven beschikbaar.
+  async function setAllAppsBlocked(enabled) {
+    if (busy) return;
+    if (!apps.length) {
+      document.getElementById("bulkAppsError").textContent = "Er zijn geen apps geladen.";
+      return;
+    }
+    busy = true;
+    document.getElementById("blockAllAppsButton").disabled = true;
+    document.getElementById("allowAllAppsButton").disabled = true;
+    document.getElementById("bulkAppsError").textContent = "";
+    try {
+      const { data, error } = await db.from("app_rules")
+        .update({ is_blocked: enabled, unlocked_until: null, updated_at: new Date().toISOString() })
+        .eq("owner_id", OWNER_ID)
+        .select("id");
+      if (error) throw error;
+      if (!data || data.length !== apps.length) {
+        throw new Error("Niet alle appregels konden worden bijgewerkt.");
+      }
+      await notifyPhone();
+    } catch (error) {
+      document.getElementById("bulkAppsError").textContent =
+        "Wijziging mogelijk deels verwerkt; controleer: " + error.message;
+    } finally {
+      busy = false;
+      document.getElementById("blockAllAppsButton").disabled = false;
+      document.getElementById("allowAllAppsButton").disabled = false;
+      await loadApps();
+    }
+  }
+
+  document.getElementById("blockAllAppsButton").addEventListener("click", () => setAllAppsBlocked(true));
+  document.getElementById("allowAllAppsButton").addEventListener("click", () => setAllAppsBlocked(false));
+
+  // TIJDSCHEMA'S: uitsluitend configuratie. Android-uitvoering volgt later.
+  const dayNames = ['','Ma','Di','Wo','Do','Vr','Za','Zo'];
+  const scheduleType = document.getElementById('scheduleType');
+  scheduleType.addEventListener('change', () => {
+    document.getElementById('scheduleAppWrap').classList.toggle('hidden', scheduleType.value !== 'app');
+  });
+
+  function renderScheduleAppOptions() {
+    const select = document.getElementById('scheduleApp');
+    const previous = select.value;
+    select.replaceChildren();
+    for (const app of apps) {
+      const option = document.createElement('option');
+      option.value = app.package_name;
+      option.textContent = app.app_name;
+      select.appendChild(option);
+    }
+    if (apps.some(a => a.package_name === previous)) select.value = previous;
+  }
+
+  function resetScheduleForm() {
+    document.getElementById('scheduleForm').reset();
+    document.getElementById('scheduleEditId').value = '';
+    document.getElementById('scheduleSave').textContent = '💾 Schema opslaan';
+    document.getElementById('scheduleCancel').classList.add('hidden');
+    scheduleType.dispatchEvent(new Event('change'));
+  }
+  document.getElementById('scheduleCancel').addEventListener('click', resetScheduleForm);
+
+  async function loadSchedules() {
+    if (scheduleLoading || scheduleBusy) return;
+    scheduleLoading = true;
+    try {
+      const { data, error } = await db.from('app_schedules').select('*')
+        .eq('owner_id', OWNER_ID).order('created_at', { ascending: true });
+      if (error) throw error;
+      schedules = data || [];
+      document.getElementById('scheduleError').textContent = '';
+      renderSchedules();
+    } catch (e) {
+      document.getElementById('scheduleError').textContent = 'Schema’s laden mislukt: ' + e.message;
+    } finally { scheduleLoading = false; }
+  }
+
+  function renderSchedules() {
+    const list = document.getElementById('scheduleList');
+    list.replaceChildren();
+    if (!schedules.length) { list.textContent = 'Nog geen tijdschema’s.'; return; }
+    for (const item of schedules) {
+      const row = document.createElement('div');
+      row.className = 'schedule-entry';
+      const title = document.createElement('strong');
+      title.textContent = (item.enabled ? '🟢 ' : '⚪ ') + item.name;
+      const description = document.createElement('div');
+      description.className = 'small-note';
+      const app = apps.find(a => a.package_name === item.package_name);
+      const target = item.schedule_type === 'all' ? 'Alle apps' : (app?.app_name || item.package_name);
+      description.textContent = `${target} · ${(item.days || []).map(d => dayNames[d]).join(', ')} · ${item.start_time.slice(0,5)}–${item.end_time.slice(0,5)}`;
+      const actions = document.createElement('div');
+      actions.className = 'control-row';
+      for (const [label, handler, css] of [
+        ['✏️ Bewerken', () => editSchedule(item), 'time-btn'],
+        [item.enabled ? '⏸ Uitzetten' : '▶️ Aanzetten', () => toggleSchedule(item), 'time-btn'],
+        ['🗑 Verwijderen', () => deleteSchedule(item), 'block-btn']
+      ]) {
+        const btn = document.createElement('button');
+        btn.type = 'button'; btn.textContent = label; btn.className = css;
+        btn.disabled = scheduleBusy; btn.addEventListener('click', handler);
+        actions.appendChild(btn);
+      }
+      row.append(title, description, actions);
+      list.appendChild(row);
+    }
+  }
+
+  function editSchedule(item) {
+    document.getElementById('scheduleEditId').value = item.id;
+    document.getElementById('scheduleName').value = item.name;
+    scheduleType.value = item.schedule_type;
+    scheduleType.dispatchEvent(new Event('change'));
+    renderScheduleAppOptions();
+    if (item.package_name) document.getElementById('scheduleApp').value = item.package_name;
+    document.getElementById('scheduleStart').value = item.start_time.slice(0,5);
+    document.getElementById('scheduleEnd').value = item.end_time.slice(0,5);
+    document.querySelectorAll('#scheduleDays input').forEach(input => {
+      input.checked = item.days.includes(Number(input.value));
+    });
+    document.getElementById('scheduleSave').textContent = '💾 Wijzigingen opslaan';
+    document.getElementById('scheduleCancel').classList.remove('hidden');
+    document.getElementById('scheduleForm').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  document.getElementById('scheduleForm').addEventListener('submit', async event => {
+    event.preventDefault();
+    if (scheduleBusy) return;
+    const days = [...document.querySelectorAll('#scheduleDays input:checked')].map(el => Number(el.value));
+    const name = document.getElementById('scheduleName').value.trim();
+    const start = document.getElementById('scheduleStart').value;
+    const end = document.getElementById('scheduleEnd').value;
+    const packageName = scheduleType.value === 'app' ? document.getElementById('scheduleApp').value : null;
+    const errorBox = document.getElementById('scheduleError');
+    if (!name || !days.length || !start || !end || start === end || (scheduleType.value === 'app' && !packageName)) {
+      errorBox.textContent = 'Vul een naam, app (indien nodig), verschillende tijden en minimaal één dag in.';
+      return;
+    }
+    const id = document.getElementById('scheduleEditId').value;
+    const existing = schedules.find(item => item.id === id);
+    const payload = { owner_id: OWNER_ID, name, schedule_type: scheduleType.value,
+      package_name: packageName, days, start_time: start, end_time: end,
+      enabled: existing ? existing.enabled : true, updated_at: new Date().toISOString() };
+    scheduleBusy = true;
+    document.getElementById('scheduleSave').disabled = true;
+    errorBox.textContent = '';
+    try {
+      const query = id ? db.from('app_schedules').update(payload).eq('id', id).eq('owner_id', OWNER_ID)
+                       : db.from('app_schedules').insert(payload);
+      const { data, error } = await query.select('id');
+      if (error) throw error;
+      if (data?.length !== 1) throw new Error('Schema niet opgeslagen (geen toegang).');
+      resetScheduleForm();
+      await loadSchedulesAfterMutation();
+    } catch (e) { errorBox.textContent = 'Opslaan mislukt: ' + e.message; }
+    finally { scheduleBusy = false; document.getElementById('scheduleSave').disabled = false; }
+  });
+
+  async function loadSchedulesAfterMutation() {
+    scheduleBusy = false;
+    await loadSchedules();
+    scheduleBusy = true;
+  }
+  async function toggleSchedule(item) {
+    if (scheduleBusy) return;
+    scheduleBusy = true;
+    try {
+      const { data, error } = await db.from('app_schedules')
+        .update({ enabled: !item.enabled, updated_at: new Date().toISOString() })
+        .eq('id', item.id).eq('owner_id', OWNER_ID).select('id');
+      if (error) throw error;
+      if (data?.length !== 1) throw new Error('Schema niet bijgewerkt.');
+      await loadSchedulesAfterMutation();
+    } catch(e) { document.getElementById('scheduleError').textContent = e.message; }
+    finally { scheduleBusy = false; }
+  }
+  async function deleteSchedule(item) {
+    if (scheduleBusy || !confirm(`Schema "${item.name}" verwijderen?`)) return;
+    scheduleBusy = true;
+    try {
+      const { data, error } = await db.from('app_schedules').delete()
+        .eq('id', item.id).eq('owner_id', OWNER_ID).select('id');
+      if (error) throw error;
+      if (data?.length !== 1) throw new Error('Schema niet verwijderd.');
+      await loadSchedulesAfterMutation();
+    } catch(e) { document.getElementById('scheduleError').textContent = e.message; }
+    finally { scheduleBusy = false; }
+  }
+
+  async function loadExceptions() {
+    if (exceptionBusy) return;
+    try {
+      const { data, error } = await db.from('schedule_exceptions')
+        .select('package_name').eq('owner_id', OWNER_ID);
+      if (error) throw error;
+      scheduleExceptions = new Set((data || []).map(row => row.package_name));
+      document.getElementById('exceptionError').textContent = '';
+      renderExceptions();
+    } catch(e) { document.getElementById('exceptionError').textContent = 'Uitzonderingen laden mislukt: ' + e.message; }
+  }
+  function renderExceptions() {
+    const list = document.getElementById('exceptionList');
+    list.replaceChildren();
+    if (!apps.length) { list.textContent = 'Geen apps geladen.'; return; }
+    for (const app of apps) {
+      const label = document.createElement('label');
+      label.className = 'exception-row';
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox'; checkbox.checked = scheduleExceptions.has(app.package_name);
+      checkbox.disabled = exceptionBusy;
+      checkbox.addEventListener('change', () => setException(app.package_name, checkbox.checked));
+      const name = document.createElement('span'); name.textContent = app.app_name;
+      label.append(checkbox, name); list.appendChild(label);
+    }
+  }
+  async function setException(packageName, enabled) {
+    if (exceptionBusy) return;
+    exceptionBusy = true;
+    renderExceptions();
+    try {
+      const query = enabled
+        ? db.from('schedule_exceptions').upsert({ owner_id: OWNER_ID, package_name: packageName }, { onConflict: 'owner_id,package_name' })
+        : db.from('schedule_exceptions').delete().eq('owner_id', OWNER_ID).eq('package_name', packageName);
+      const { error } = await query;
+      if (error) throw error;
+      if (enabled) scheduleExceptions.add(packageName); else scheduleExceptions.delete(packageName);
+      document.getElementById('exceptionError').textContent = '';
+    } catch(e) { document.getElementById('exceptionError').textContent = 'Opslaan mislukt: ' + e.message; }
+    finally { exceptionBusy = false; await loadExceptions(); }
+  }
+
+  // APPS OPHALEN
+
+  async function loadApps() {
+    if (busy) return;
+
+    const { data, error } = await db
+      .from("app_rules")
+      .select("*")
+      .eq("owner_id", OWNER_ID)
+      .order("app_name");
+
+    if (error) {
+      document.getElementById("connectionStatus").textContent =
+        "⚠️ Verbinding mislukt: " + error.message;
+      return;
+    }
+
+    apps = data || [];
+
+    document.getElementById("connectionStatus").textContent =
+      "🟢 Verbonden met Supabase";
+
+    renderApps();
+    renderScheduleAppOptions();
+    renderExceptions();
+  }
+
+  // CATEGORIEËN
+
+  function getCategory(app) {
+    const name = app.app_name.toLowerCase();
+
+    if (
+      name.includes("instagram") ||
+      name.includes("facebook") ||
+      name.includes("tiktok") ||
+      name.includes("snapchat") ||
+      name.includes("reddit")
+    ) {
+      return "📱 Social media";
+    }
+
+    if (
+      name.includes("ibkr") ||
+      name.includes("trading") ||
+      name.includes("broker") ||
+      name.includes("trade")
+    ) {
+      return "📈 Trading";
+    }
+
+    if (
+      name.includes("youtube") ||
+      name.includes("netflix") ||
+      name.includes("spotify") ||
+      name.includes("prime video")
+    ) {
+      return "🎬 Entertainment";
+    }
+
+    return "📦 Overige apps";
+  }
+
+  function isTemporarilyUnlocked(app) {
+    if (!app.unlocked_until) return false;
+
+    return new Date(app.unlocked_until).getTime() > Date.now();
+  }
+
+  // APPS TONEN
+
+  function renderApps() {
+    const search = document
+      .getElementById("search")
+      .value
+      .toLowerCase();
+
+    const filtered = apps.filter(app =>
+      app.app_name.toLowerCase().includes(search)
+    );
+
+    const blocked = apps.filter(app =>
+      app.is_blocked && !isTemporarilyUnlocked(app)
+    ).length;
+
+    document.getElementById("blockedCount").textContent =
+      blocked + " apps geblokkeerd";
+
+    appList.innerHTML = "";
+
+    if (filtered.length === 0) {
+      appList.textContent = "Geen apps gevonden.";
+      return;
+    }
+
+    const categories = {};
+
+    filtered.forEach(app => {
+      const category = getCategory(app);
+
+      if (!categories[category]) {
+        categories[category] = [];
+      }
+
+      categories[category].push(app);
+    });
+
+    Object.entries(categories).forEach(([category, items]) => {
+      const title = document.createElement("div");
+      title.className = "category";
+      title.textContent = category;
+      appList.appendChild(title);
+
+      items.forEach(app => {
+        const activeBlock =
+          app.is_blocked && !isTemporarilyUnlocked(app);
+
+        const row = document.createElement("div");
+        row.className = "app";
+
+        const info = document.createElement("div");
+        info.className = "app-info";
+
+        const name = document.createElement("div");
+        name.className = "app-name";
+        name.textContent = "📱 " + app.app_name;
+
+        const status = document.createElement("div");
+        status.className =
+          "app-status " + (activeBlock ? "blocked" : "allowed");
+
+        if (isTemporarilyUnlocked(app)) {
+          const until = new Date(app.unlocked_until);
+
+          status.textContent =
+            "🟡 Tijdelijk vrij tot " +
+            until.toLocaleTimeString("nl-NL", {
+              hour: "2-digit",
+              minute: "2-digit"
+            });
+        } else {
+          status.textContent = activeBlock
+            ? "🔴 Geblokkeerd"
+            : "🟢 Altijd toegestaan";
+        }
+
+        info.appendChild(name);
+        info.appendChild(status);
+
+        const actions = document.createElement("div");
+        actions.className = "app-actions";
+
+        // Alle instellingen worden uitsluitend via Suzes dashboard gewijzigd.
+        const blockButton = document.createElement("button");
+        blockButton.className = "block-btn";
+        blockButton.textContent = "🔴 Blokkeren";
+        blockButton.disabled = app.is_blocked && !isTemporarilyUnlocked(app);
+        blockButton.onclick = () => blockApp(app);
+        actions.appendChild(blockButton);
+
+        const allowButton = document.createElement("button");
+        allowButton.className = "allow-btn";
+        allowButton.textContent = "🟢 Altijd toestaan";
+        allowButton.disabled = !app.is_blocked;
+        allowButton.onclick = () => allowApp(app);
+        actions.appendChild(allowButton);
+
+        if (app.is_blocked) {
+          const temporaryButton = document.createElement("button");
+          temporaryButton.className = "unlock-btn";
+          temporaryButton.textContent = "🟡 Tijdelijk";
+          temporaryButton.onclick = () => openUnlockModal(app);
+          actions.appendChild(temporaryButton);
+        }
+
+        row.appendChild(info);
+        row.appendChild(actions);
+        appList.appendChild(row);
+      });
+    });
+  }
+
+  // APP BLOKKEREN
+
+  async function blockApp(app) {
+    if (busy) return;
+    busy = true;
+
+    try {
+      const { error } = await db
+        .from("app_rules")
+        .update({
+          is_blocked: true,
+          unlocked_until: null,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", app.id)
+        .eq("owner_id", OWNER_ID);
+
+      if (error) throw error;
+      await notifyPhone();
+
+    } catch (error) {
+      alert("Blokkade opgeslagen of deels verwerkt; controleer push: " + error.message);
+    } finally {
+      busy = false;
+      await loadApps();
+    }
+  }
+
+  // PERMANENT TOESTAAN (via Suzes dashboard)
+  async function allowApp(app) {
+    if (busy) return;
+    busy = true;
+    try {
+      const { data, error } = await db
+        .from("app_rules")
+        .update({
+          is_blocked: false,
+          unlocked_until: null,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", app.id)
+        .eq("owner_id", OWNER_ID)
+        .select("id");
+      if (error) throw error;
+      if (!data || data.length !== 1) throw new Error("Geen toegang tot app-regel.");
+      await notifyPhone();
+    } catch (error) {
+      alert("Toestaan opgeslagen of deels verwerkt; controleer push: " + error.message);
+    } finally {
+      busy = false;
+      await loadApps();
+    }
+  }
+
+  // TIJDELIJK VRIJGEVEN
+
+  function openUnlockModal(app) {
+    selectedApp = app;
+
+    document.getElementById("unlockAppName").textContent =
+      app.app_name;
+
+    document.getElementById("unlockModal")
+      .classList.remove("hidden");
+  }
+
+  function closeUnlockModal() {
+    selectedApp = null;
+
+    document.getElementById("unlockModal")
+      .classList.add("hidden");
+  }
+
+  document.getElementById("cancelUnlock")
+    .addEventListener("click", closeUnlockModal);
+
+  document.querySelectorAll("[data-minutes]").forEach(button => {
+    button.addEventListener("click", async () => {
+      if (!selectedApp || busy) return;
+
+      const app = selectedApp;
+      const minutes = Number(button.dataset.minutes);
+
+      const until = new Date(
+        Date.now() + minutes * 60 * 1000
+      ).toISOString();
+
+      busy = true;
+
+      try {
+        const { error } = await db
+          .from("app_rules")
+          .update({
+            is_blocked: true,
+            unlocked_until: until,
+            updated_at: new Date().toISOString()
+          })
+          .eq("id", app.id)
+          .eq("owner_id", OWNER_ID);
+
+        if (error) throw error;
+        await notifyPhone();
+
+        closeUnlockModal();
+
+      } catch (error) {
+        alert("Vrijgeven opgeslagen of deels verwerkt; controleer push: " + error.message);
+      } finally {
+        busy = false;
+        await loadApps();
+      }
+    });
+  });
+
+  // ZOEKEN
+
+  document.getElementById("search")
+    .addEventListener("input", renderApps);
+
+  // UITLOGGEN
+
+  document.getElementById("logoutButton")
+    .addEventListener("click", async () => {
+      await db.auth.signOut();
+      showLogin();
+    });
+
+  // AUTOMATISCH INGELOGD BLIJVEN
+
+  db.auth.getSession().then(({ data }) => {
+    if (data.session) {
+      showDashboard();
+    } else {
+      showLogin();
+    }
+  });
+
+</script>
+</body>
+</html>
